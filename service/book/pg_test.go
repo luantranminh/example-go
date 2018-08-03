@@ -34,7 +34,7 @@ func Test_pgService_Create(t *testing.T) {
 			s := &pgService{
 				db: testDB,
 			}
-			if err := s.Create(context.Background(0, tt.args.p); (err != nil) != tt.wantErr {
+			if err := s.Create(context.Background(), tt.args.p); (err != nil) != tt.wantErr {
 				t.Errorf("pgService.Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
