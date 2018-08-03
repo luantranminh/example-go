@@ -34,13 +34,6 @@ func Test_pgService_Create(t *testing.T) {
 				Name: "Create category",
 			}},
 		},
-		{
-			name: "Unsuccess",
-			args: args{&domain.Category{
-				Name: "trap",
-			}},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -89,7 +82,7 @@ func Test_pgService_Update(t *testing.T) {
 			}},
 			want: &domain.Category{
 				Model: domain.Model{ID: category.ID},
-				Name:  "fictiona",
+				Name:  "nonameno",
 			},
 		},
 		{
@@ -114,8 +107,13 @@ func Test_pgService_Update(t *testing.T) {
 				}
 			}
 
-			if (got != nil && tt.want != nil) && (got.ID != tt.want.ID) {
-				t.Errorf("pgService.Update() got = %v, want %v", got, tt.want)
+			if got != nil && tt.want != nil {
+				if got.Name != tt.want.Name {
+					t.Errorf("pgService.Update() got = %v, want %v", got.Name, tt.want.Name)
+				}
+				if got.ID != tt.want.ID {
+					t.Errorf("pgService.Update() got = %v, want %v", got.ID, tt.want.ID)
+				}
 			}
 		})
 	}
@@ -204,38 +202,38 @@ func Test_pgService_Delete(t *testing.T) {
 		t.Fatalf("Failed to create category by error %v", err)
 	}
 
-	// dumpCategory := domain.Category{}
-	// err = testDB.Create(&dumpCategory).Error
-	// if err != nil {
-	// 	t.Fatalf("Failed to create category by error %v", err)
-	// }
+	dumpCategory := domain.Category{}
+	err = testDB.Create(&dumpCategory).Error
+	if err != nil {
+		t.Fatalf("Failed to create category by error %v", err)
+	}
 
-	// dumpBook1 := domain.Book{
-	// 	Name:       "This book need deleted",
-	// 	CategoryID: category.ID,
-	// }
-	// err = testDB.Create(&dumpBook1).Error
-	// if err != nil {
-	// 	t.Fatalf("Failed to create book by error %v", err)
-	// }
+	dumpBook1 := domain.Book{
+		Name:       "This book need deleted",
+		CategoryID: category.ID,
+	}
+	err = testDB.Create(&dumpBook1).Error
+	if err != nil {
+		t.Fatalf("Failed to create book by error %v", err)
+	}
 
-	// dumpBook2 := domain.Book{
-	// 	Name:       "This book need deleted",
-	// 	CategoryID: category.ID,
-	// }
-	// err = testDB.Create(&dumpBook2).Error
-	// if err != nil {
-	// 	t.Fatalf("Failed to create book by error %v", err)
-	// }
+	dumpBook2 := domain.Book{
+		Name:       "This book need deleted",
+		CategoryID: category.ID,
+	}
+	err = testDB.Create(&dumpBook2).Error
+	if err != nil {
+		t.Fatalf("Failed to create book by error %v", err)
+	}
 
-	// dumpBook3 := domain.Book{
-	// 	Name:       "Do not delete this trap",
-	// 	CategoryID: dumpCategory.ID,
-	// }
-	// err = testDB.Create(&dumpBook3).Error
-	// if err != nil {
-	// 	t.Fatalf("Failed to create book by error %v", err)
-	// }
+	dumpBook3 := domain.Book{
+		Name:       "Do not delete this trap",
+		CategoryID: dumpCategory.ID,
+	}
+	err = testDB.Create(&dumpBook3).Error
+	if err != nil {
+		t.Fatalf("Failed to create book by error %v", err)
+	}
 
 	fakeCategoryID := domain.MustGetUUIDFromString("1698bbd6-e0c8-4957-a5a9-8c536970994b")
 
@@ -246,6 +244,7 @@ func Test_pgService_Delete(t *testing.T) {
 		name    string
 		args    args
 		wantErr error
+		book    []domain.Book
 	}{
 		{
 			name: "success delete",
@@ -253,6 +252,9 @@ func Test_pgService_Delete(t *testing.T) {
 				Name:  "category",
 				Model: domain.Model{ID: category.ID},
 			}},
+			book: []domain.Book{
+				dumpBook3,
+			},
 		},
 		{
 			name: "deletion failed: category not exists",
@@ -275,6 +277,31 @@ func Test_pgService_Delete(t *testing.T) {
 			}
 			if err == nil && tt.wantErr != nil {
 				t.Errorf("pgService.Delete() error = %v, wantErr = %v", err, tt.wantErr)
+			}
+
+			if tt.name == "success delete" {
+				// this flag equal 0 when we find dumpbook3 not belong category just deleted
+				flag := 1
+
+				books := []domain.Book{}
+				err = s.db.Find(&books).Error
+				if err != nil {
+					t.Errorf("failed to load associated book = %v", err)
+				}
+				for _, book := range books {
+
+					if book.CategoryID == category.ID {
+						t.Errorf("failed to delete associated book, book is not deleted")
+					}
+
+					if book.CategoryID == dumpBook3.CategoryID {
+						flag = 0
+					}
+				}
+
+				if flag == 1 {
+					t.Errorf("deleted wrong book")
+				}
 			}
 		})
 	}
