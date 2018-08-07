@@ -72,6 +72,7 @@ func (s *pgService) Find(_ context.Context, p *domain.Book) (*domain.Book, error
 // FindAll implement FindAll for Book service
 func (s *pgService) FindAll(_ context.Context) ([]domain.Book, error) {
 	res := []domain.Book{}
+
 	return res, s.db.Find(&res).Error
 }
 

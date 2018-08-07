@@ -20,12 +20,12 @@ type CreateData struct {
 
 // CreateRequest request struct for CreateBook
 type CreateRequest struct {
-	Book CreateData `json:"book"`
+	Book []CreateData `json:"book"`
 }
 
 // CreateResponse response struct for CreateBook
 type CreateResponse struct {
-	Book domain.Book `json:"book"`
+	Book []domain.Book `json:"book"`
 }
 
 // StatusCode customstatus code for success create Book
@@ -36,22 +36,27 @@ func (CreateResponse) StatusCode() int {
 // MakeCreateEndpoint make endpoint for create a Book
 func MakeCreateEndpoint(s service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
-		var (
-			req  = request.(CreateRequest)
-			book = &domain.Book{
-				Name:        req.Book.Name,
-				Author:      req.Book.Author,
-				Description: req.Book.Description,
-				CategoryID:  req.Book.CategoryID,
+
+		req := request.(CreateRequest)
+
+		books := []domain.Book{}
+
+		for _, element := range req.Book {
+			book := &domain.Book{
+				Name:        element.Name,
+				Author:      element.Author,
+				Description: element.Description,
+				CategoryID:  element.CategoryID,
 			}
-		)
 
-		err := s.BookService.Create(ctx, book)
-		if err != nil {
-			return nil, err
+			err := s.BookService.Create(ctx, book)
+			if err != nil {
+				return nil, err
+			}
+
+			books = append(books, *book)
 		}
-
-		return CreateResponse{Book: *book}, nil
+		return CreateResponse{Book: books}, nil
 	}
 }
 
@@ -81,7 +86,8 @@ func MakeFindEndPoint(s service.Service) endpoint.Endpoint {
 }
 
 // FindAllRequest request struct for FindAll Book
-type FindAllRequest struct{}
+type FindAllRequest struct {
+}
 
 // FindAllResponse request struct for find all Book
 type FindAllResponse struct {
@@ -93,6 +99,7 @@ func MakeFindAllEndpoint(s service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		_ = request.(FindAllRequest)
 		books, err := s.BookService.FindAll(ctx)
+
 		if err != nil {
 			return nil, err
 		}
